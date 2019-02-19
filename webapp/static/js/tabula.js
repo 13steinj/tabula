@@ -106,27 +106,21 @@ Tabula.getSettings = function(){
     // on first usage, we do nothing. once you've seen the opt-out banner,
     // we continue to show it, but fetch notifications.
 
-    getNotifications = function(){
-      if(data["disable_version_check"] === false) {
+    getNotifications = function() {
+      if (data["disable_version_check"] === false)
         Tabula.getLatestReleaseVersion();
-      }
-      if(data["disable_notifications"] === false) {
+      if (data["disable_notifications"] === false)
         Tabula.getNotifications();
-      }
     }
 
     var notificationsDialogSeen = localStorage.getItem("tabula-notifications-dialog-seen");
     var acceptsNotifications = localStorage.getItem("tabula-notifications");
-    if (acceptsNotifications == "true"){
-      getNotifications();
-    }else if (acceptsNotifications == "false"){
-     // do nothing.
-    }else{ // null or unset
-      if (notificationsDialogSeen){
-        getNotifications();
-      }else{
-        localStorage.setItem("tabula-notifications-dialog-seen", true);
-      }
+    if (acceptsNotifications == "true") getNotifications();
+    else if (acceptsNotifications == "false") {}
+    else { // null or unset
+      if (notificationsDialogSeen) getNotifications();
+      else localStorage.setItem("tabula-notifications-dialog-seen", true);
+      
       $('#tabula-app').after( _.template( $('#notifications-approval-template').html().replace(/nestedscript/g, 'script') )({ }) );
       $('#notifications-approval-clicky #notifications-approval-close, #notifications-approval-clicky #notifications-approval-okay').on("click", function(){
         localStorage.setItem("tabula-notifications-dialog-seen", true);
@@ -140,7 +134,7 @@ Tabula.getSettings = function(){
       })
     }
     Tabula.api_version = data["api_version"];
-    if(Tabula.api_version.slice(0,3) == "rev"){
+    if (Tabula.api_version.slice(0,3) == "rev"){
       // $('#dev-mode-ribbon').show();
       console.log("This is a development version of Tabula!")
     }
@@ -160,10 +154,10 @@ Tabula.getLatestReleaseVersion = function(){
 
         // check if new version
         var non_prerelease_i = 0;
-        for (var i=0; i<data.length; i++) {
+        for (var i = 0; i < data.length; i++) {
           var d = data[i];
-          if (!!d.draft) { continue; } // ignore drafts
-          if (!prerelease && !!d.prerelease) { continue; } // ignore prereleases unless we're on a prerelease
+          // ignore drafts and prereleases unless we're on a prerelease
+          if (!!d.draft || (!prerelease && !!d.prerelease)) continue;
 
           var rel_ver_re = /\((\d+\.\d+\.\d+\.\d+)\)/;
           console.log("checking " + d.name + " vs " + Tabula.api_version);
@@ -178,8 +172,7 @@ Tabula.getLatestReleaseVersion = function(){
             (!!d.name.match(rel_ver_re) && (d.name.match(rel_ver_re)[1] === Tabula.api_version))
           )) {
             // if index == 0, current release is the newest, so break out of this fn
-            console.log(" -> IS LATEST");
-            return;
+            return console.log(" -> IS LATEST");
           } else {
             // keep iterating, maybe we'll find this version later in list
             non_prerelease_i += 1;
@@ -188,9 +181,7 @@ Tabula.getLatestReleaseVersion = function(){
 
         // We're not the latest release, grab data from GitHub & tell user
         var new_release = data[0];
-        if(new_release){
-          Tabula.new_version.set(new_release);
-        }
+        if (new_release) Tabula.new_version.set(new_release);
       }
   );
 };
@@ -201,30 +192,26 @@ Tabula.getNotifications = function(){
     url: 'http://tabula.jeremybmerrill.com/tabula/notifications.jsonp',
     dataType: "jsonp",
     jsonpCallback: 'notifications',
-    success: function(data){
-      if(data.length < 1) return;
+    success: function(data) {
+      if (data.length < 1) return;
 
       // find the first listed notification where today is between its `live_date` and `expires_date`
       // and within the `versions` list.
       // we might use this for, say, notifying users if a version urgently needs an update or something
-      var notifications = $.grep(data, function(d){
+      var notifications = $.grep(data, function(d) {
         var today = new Date();
         if ( (d.expires_date && (new Date(d.expires_date) < today)) || (d.live_date && (new Date(d.live_date) > today)) ){
           return false;
         }
-        if( d.versions && d.versions.length > 0){
-          return (d.versions.indexOf(Tabula.api_version) > -1);
-        }else{
-          return true;
-        }
+        if (d.versions && d.versions.length > 0) return (d.versions.indexOf(Tabula.api_version) > -1);
+
+        return true;
       });
 
-      if(notifications.length >= 1){
+      if (notifications.length >= 1){
         console.log(notifications.length + " matching notifications:", notifications);
         Tabula.notification.set(notifications[0]);
-      }else{
-        console.log("no notifications")
-      }
+      } else console.log("no notifications");
     }});
 }
 
